@@ -1,0 +1,19 @@
+# Vivado
+*.jou
+*.log
+*.str
+*.xpr
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.gen/
+.Xil/
+vivado*.backup*
+# build artefacts
+build/
+*.bit
+*.mem
+# OS
+.DS_Store
