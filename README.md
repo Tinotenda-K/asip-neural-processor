@@ -21,16 +21,16 @@ an intermediate register on each of those. This processor spends one.
 
 The project covers the full stack from encoding to silicon-adjacent:
 
-- **Instruction set** — a MIPS-like ISA with R-, I- and J-type encodings,
+- **Instruction set** - a MIPS-like ISA with R-, I- and J-type encodings,
 extended with a fused MAC instruction and a ReLU instruction. Encoding tables
 in [docs/isa.md](docs/isa.md).
-- **Microarchitecture** — datapath, register file and control unit in Verilog,
+- **Microarchitecture** - datapath, register file and control unit in Verilog,
 each with its own testbench. Design notes in
 [docs/architecture.md](docs/architecture.md).
-- **Assembler** — written from scratch in Python; parses the assembly syntax,
+- **Assembler** - written from scratch in Python; parses the assembly syntax,
 resolves labels, and emits memory images the processor loads directly.
 See [asm/](asm/).
-- **Quantisation** — an INT8 flow that takes trained Keras weights and maps the
+- **Quantisation** - an INT8 flow that takes trained Keras weights and maps the
 to processor memory images. See [quantisation/](quantisation/).
 
 ## Results
@@ -68,7 +68,7 @@ Electrical Engineering programme at the University of Twente.
 ## What I would change
 
 The datapath is single-cycle, which is what made timing closure tractable and
-what makes the 2.22 ns figure a fair one — but it means the clock is set by
+what makes the 2.22 ns figure a fair one - but it means the clock is set by
 the
 slowest instruction, and memory access is that instruction. A two- or three
 stage
