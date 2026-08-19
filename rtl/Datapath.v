@@ -1,16 +1,74 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Datapath - BRAM / multi-cycle version
+// Datapath
 //
-// Structural changes vs the original:
-//   * pc_enable is now driven by the ControlUnit FSM (was hardwired to 1)
-//   * IMEM and DMEM take clk + en
-//   * DMEM addr is a WORD index (unchanged behaviour, but the packer now
-//     emits word addresses so the pointers finally agree)
-//   * no separate IR / MDR needed - the BRAM output registers serve that role
-//   * simulation $display blocks fenced with translate_off
-//   * four observability taps (wb_data, dmem_addr, dmem_wdata, dmem_we)
-//     required by TopModule to latch result_out
+// PURPOSE
+//   Wires the program counter, instruction memory, register file, ALU and data
+//   memory together, and computes branch and jump targets. Holds no control
+//   logic of its own -- every enable comes from ControlUnit.
+//
+// STRUCTURE
+//   PC -> InstructionMemory -> decode fields
+//                           -> RegisterFile (rs, rt)
+//                           -> ALU -> DataMemory address
+//                                  -> writeback mux -> RegisterFile write port
+//
+// CRITICAL PATH
+//   The routed critical path runs:
+//
+//       IMEM BRAM output -> register-file read mux -> ALU -> DMEM address
+//
+//   24 logic levels, of which 13 sit inside the MAC4 adder tree when
+//   ENABLE_MAC4 = 1. This is why MAC4 is parameterised rather than always
+//   present: the arm lengthens this path on every instruction, executed or not.
+//
+// WHAT IS NOT ON THE CRITICAL PATH
+//   branch_taken and the branch/jump target adders. The top five failing paths
+//   all ended at DMEM address inputs or register-file write ports; none at the
+//   PC. The 32-bit branch comparator has slack to spare, so splitting or
+//   registering it buys nothing.
+//
+//   Similarly, these are pure wire aliases with zero logic and zero delay:
+//
+//       assign dmem_addr  = alu_result;
+//       assign dmem_wdata = rt_data;
+//       assign wb_data    = write_data;
+//
+//   Renaming a net is not a mux. Registering dmem_addr would break correctness:
+//   DataMemory needs the address in the same cycle dmem_en is asserted
+//   (S_EXEC), so adding a register would require an extra FSM state.
+//
+// ADDRESSING -- READ THIS BEFORE EDITING
+//   Two conventions coexist deliberately:
+//     * PC is byte-oriented: PC + 4 per instruction, branch offsets shifted
+//       left by 2, as in MIPS.
+//     * Data memory is WORD-addressed: LW r5, 3(r10) reads word r10+3, not
+//       byte r10+3.
+//
+//   The packed network is an array of 32-bit words with no sub-word access
+//   anywhere, so word addressing is the natural choice. Mixing the two up
+//   produces offsets wrong by exactly 4x, which in a dense weight array still
+//   lands on a plausible-looking weight. It cost a long debugging session; see
+//   docs/debugging.md.
+//
+// BRANCH AND JUMP
+//   wire branch_taken = (branch_equal     && (rs_data == rt_data)) ||
+//                       (branch_not_equal && (rs_data != rt_data));
+//
+//   branch_target = branch_taken ? (pc_plus4 + {{14{imm16[15]}}, imm16, 2'b00})
+//                                : pc_plus4;
+//   jump_target   = {pc[31:28], jump_imm, 2'b00};
+//
+// SIMULATION TRACING
+//   A $display block inside `synthesis translate_off` prints PC, opcode,
+//   operands, ALU result and writeback each cycle. It is excluded from
+//   synthesis and is the fastest way to find where hardware diverges from the
+//   golden model in sim/.
+//
+// CHANGE HISTORY
+//   - Split into fetch/execute/writeback phases driven by ControlUnit enables.
+//   - Data memory addressing corrected from byte to word throughout.
+//   - Added writeback bus to the port list so the top level can observe it.
 //////////////////////////////////////////////////////////////////////////////////
 
 module Datapath (
