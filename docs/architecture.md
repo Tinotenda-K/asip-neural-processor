@@ -123,7 +123,7 @@ Data memory layout, word-addressed:
 | Activations | Scratch buffers for hidden layers |
 | Result | Argmax output word (word 28508) |
 
-## MEMORY MAP word addresses
+### MEMORY MAP word addresses
 ```
 header      0 ..    23     8 words per layer
 image      24 ..   219     196 words, PACKED
