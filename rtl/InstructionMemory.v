@@ -28,7 +28,7 @@
 //   fail with DRC resource errors and F7/F8 mux overflow.
 //
 // DEPTH
-//   parameter AW = [CHECK: 10] -> 2^AW words.
+//   parameter AW = 10 -> 2^AW words.
 //   Declared at the depth the programs need, not at the full address space.
 //   Indexing uses the low bits only:
 //       wire [AW-1:0] idx = addr[AW+1:2];   // byte-addressed PC
