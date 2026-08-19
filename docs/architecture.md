@@ -59,7 +59,7 @@ design cannot reach with the MAC4 ALU in the path.
 
 ## Datapath
 
-[FILL - insert `docs/img/datapath.png` here and delete this line.]
+[docs/img/datapath.png]
 
 Structural summary:
 
@@ -123,7 +123,13 @@ Data memory layout, word-addressed:
 | Activations | Scratch buffers for hidden layers |
 | Result | Argmax output word (word 28508) |
 
-[FILL - exact base addresses from `pack_data_mem_v3.py`.]
+# MEMORY MAP word addresses
+   header      0 ..    23     8 words per layer
+   image      24 ..   219     196 words, PACKED
+   L1 w      220 .. 25307     25088 words   b 25308..25435   y 25436..25467 (32 packed)
+   L2 w    25468 .. 27515      2048 words   b 27516..27579   y 27580..27595 (16 packed)
+   L3 w    27596 .. 27755       160 words   b 27756..27765   y 27766..27775 (10 int32)
+   result  27776
 
 **Addressing is word-based, not byte-based.** This differs from stock MIPS and
 is the source of one of the more time-consuming bugs in this project; see
