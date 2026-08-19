@@ -40,7 +40,8 @@
 //   4: 814,460 cycles against 610,845, which at 50 MHz makes inference SLOWER
 //   (16.29 ms vs 12.22 ms). It only pays above roughly 100 MHz, and 100 MHz
 //   needs the full IR/A/B/ALUOut split plus a pipelined ALU -- S_EXEC was
-//   estimated at ~9.03 ns against a 9.07 ns budget with MAC4 enabled.
+//   estimated at ~9.03 ns against a 9.07 ns budget without MAC4; enabling
+//   it makes S_EXEC longer still
 //
 // DECODE
 //   opcode -> instruction class -> control signal set.
@@ -62,7 +63,6 @@
 //   alu_op          ALU operation code
 //   pc_src          Selects next PC source (00-> PC + 4, 01-> branch, 10-> jump)
 //   imem_en         Instruction memory enable
-//   dmem_en         Data memory enable
 //
 // NOTE FOR ANYONE READING THIS EXPECTING THE TEXTBOOK MACHINE
 //   This is not the Patterson & Hennessy multi-cycle controller. That FSM has
