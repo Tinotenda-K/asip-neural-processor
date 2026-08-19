@@ -11,10 +11,10 @@
 // INTERFACE
 //   clk        core clock
 //   en         enable -- asserted by ControlUnit in S_EXEC for LW and SW
-//   we         write enable -- SW only
+//   mem_write         write enable -- SW only
 //   addr       [31:0] WORD address (see below)
-//   wdata      [31:0] write data
-//   rdata      [31:0] REGISTERED output -- valid the cycle AFTER addr
+//   write_data      [31:0] write data
+//   read_data      [31:0] REGISTERED output -- valid the cycle AFTER addr
 //
 // ADDRESSING IS BY WORD, NOT BY BYTE
 //   LW r5, 3(r10) reads the word at r10 + 3. This differs from stock MIPS and
@@ -34,7 +34,7 @@
 //       one INT8 per 32-bit word : 110,390 words (~3,450 Kb)
 //       XC7S50 total BRAM        :               2,700 Kb
 //
-//   Packing four INT8 values per word gives 28,509 words, which fits.
+//   Packing four INT8 values per word gives 27,777 words, which fits.
 //   Lane layout, little-endian:
 //
 //       [31:24] lane 3 | [23:16] lane 2 | [15:8] lane 1 | [7:0] lane 0
@@ -52,11 +52,11 @@
 // MEMORY MAP (word indices; DataMemory.v is word-addressed)
 // ------------------------------------------------------------
 //   [0 .. 8L-1]                        header, 8 words per layer
-//   [x_base[0] ..]                     input image, one int8 per 32-bit word
+//   [x_base[0] ..]                     input image, 4 int8 per 32-bit word
 //   per layer l:
 //     [w_base[l] ..]                   PACKED weights, 4 int8 per word
 //     [b_base[l] ..]                   biases, int32, at acc_scale[l]
-//     [y_base[l] ..]                   activations, int32
+//     [y_base[l] ..]                   activations, 4 int8 per 32-bit word
 //   [result_word]                      one word for the argmax result
 //
 // Header for layer l (base = 8*l):
@@ -69,12 +69,11 @@
 // Final Layout
 // -----------------------------
 //     header      layer dimensions, scale factors, requantisation shifts
+//     input       784 INT8 pixels, packed 4/word
 //     layer 1     784 x 128 weights packed 4/word; biases at accumulator scale
 //     layer 2     128 x 64 weights; biases
 //     layer 3     64 x 10 weights; biases
-//     input       784 INT8 pixels, packed 4/word
-//     activations hidden-layer scratch
-//     result      word 28508 -- argmax output, latched to result_out
+//     result      word 27776 -- argmax output, latched to result_out
 //
 // Word by Word Layout
 // ----------------------
@@ -94,7 +93,8 @@
 //
 // CHANGE HISTORY
 //   - Read converted from asynchronous to registered for BRAM inference.
-//   - Depth reduced from 131,072 words to 28,509 after packing.
+//   - Depth reduced from 131,072 words to 32,768 after packing.
+//   - Array depth 32,768 (AW=15); data occupies 27,777
 //   - Addressing corrected from byte to word throughout.
 //   - Lane order fixed to match the packer and the MAC4 adder tree.
 //////////////////////////////////////////////////////////////////////////////////
