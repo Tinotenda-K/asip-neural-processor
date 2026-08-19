@@ -9,9 +9,10 @@
 //   clk         core clock (50 MHz)
 //   rst         synchronised reset; PC returns to 32'h0
 //   pc_enable   update enable -- asserted by ControlUnit in S_WB only
-//   pc_src     [31:0] branch target, jump target or PC+4, selected in Datapath
-//   branch_target     Target address for branching instruction BEQ/ BNE
-//   jump_target   Target for J-type Jump
+//   pc_src         [1:0]  next-PC select: 00 = PC+4, 01 = branch, 10 = jump
+//   branch_target  [31:0] computed in Datapath (already resolved: equals
+//                         pc_plus4 when the branch is not taken)
+//   jump_target    [31:0] {pc[31:28], jump_imm, 2'b00}
 //   pc          [31:0] current value
 //
 // TIMING CONTRACT
