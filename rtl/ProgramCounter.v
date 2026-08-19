@@ -1,22 +1,41 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 16.10.2025 11:41:18
-// Design Name: 
-// Module Name: ProgramCounter
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
+// ProgramCounter
+//
+// PURPOSE
+//   Holds the program counter. Updates once per instruction, in S_WB only.
+//
+// INTERFACE
+//   clk         core clock (50 MHz)
+//   rst         synchronised reset; PC returns to [CHECK: 32'h0]
+//   pc_enable   update enable -- asserted by ControlUnit in S_WB only
+//   pc_src     [31:0] branch target, jump target or PC+4, selected in Datapath
+//   branch_target     Target address for branching instruction BEQ/ BNE
+//   jump_target   Target for J-type Jump
+//   pc          [31:0] current value
+//
+// TIMING CONTRACT
+//   pc_enable is the only thing preventing the PC from advancing three times
+//   per instruction. It is asserted for exactly one of the three FSM states.
+//   If the PC ever advances during S_FETCH or S_EXEC, the instruction memory
+//   read is issued against an address the datapath has not finished using.
+//
+// ADDRESSING
+//   Byte-oriented: PC + 4 per instruction, matching MIPS convention, with
+//   branch offsets shifted left by 2 in Datapath. Note that DATA memory uses
+//   word addressing instead - the two conventions differ deliberately and the
+//   mismatch is documented in Datapath.v and docs/isa.md.
+//
+// OBSERVABILITY
+//   pc is exported to the top level as pc_out[10:0]. The upper bits are
+//   permanently zero for the programs this processor runs, so exporting all 32
+//   wasted LEDs. Narrowing it is cosmetic on the board but also keeps the PC
+//   observable to synthesis -- see the pruning note in TopModule.v.
+//
+// CHANGE HISTORY
+//   - Update gated on pc_enable when the design became multi-cycle; previously
+//     it advanced every clock edge.
+//   - Output width to the top level reduced from 16 to 11 bits.
 //////////////////////////////////////////////////////////////////////////////////
 
 
