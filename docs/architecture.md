@@ -15,7 +15,7 @@
 
 The first version of this processor was single-cycle: fetch, decode, execute and
 writeback all resolved combinationally within one clock edge. That requires both
-memories to answer *asynchronously* — the instruction word has to be available
+memories to answer *asynchronously* - the instruction word has to be available
 in the same cycle the PC presents its address.
 
 Vivado cannot map an asynchronous-read array to Block RAM, because BRAM
@@ -53,29 +53,29 @@ comparison between builds meaningful: 203,615 instructions × 3 = 610,845 cycles
 = 12.22 ms at 50 MHz.
 
 The obvious criticism is that most instructions do not need three cycles. That
-is true, and the trade is discussed in the README's closing section — the short
+is true, and the trade is discussed in the README's closing section - the short
 version is that the alternatives either raise CPI further or need a clock this
 design cannot reach with the MAC4 ALU in the path.
 
 ## Datapath
 
-[FILL — insert `docs/img/datapath.png` here and delete this line.]
+[FILL - insert `docs/img/datapath.png` here and delete this line.]
 
 Structural summary:
 
-- **ProgramCounter** — holds PC, updated only in `S_WB`. Sources: PC+4, branch
+- **ProgramCounter** - holds PC, updated only in `S_WB`. Sources: PC+4, branch
   target, jump target.
-- **InstructionMemory** — registered-read BRAM, word-addressed internally.
-- **RegisterFile** — 32 × 32-bit, two read ports, one write port. Written only
+- **InstructionMemory** - registered-read BRAM, word-addressed internally.
+- **RegisterFile** - 32 × 32-bit, two read ports, one write port. Written only
   in `S_WB`. Register 0 hardwired to zero.
-- **ALU** — parameterised. Always present: ADD, SUB, AND, OR, SLT, SLL, SRL,
+- **ALU** - parameterised. Always present: ADD, SUB, AND, OR, SLT, SLL, SRL,
   SRA, MAC, RELU. Behind parameters: MAC4, MULT.
-- **DataMemory** — registered-read BRAM holding the packed network.
-- **ControlUnit** — the three-state FSM above, producing `pc_enable`,
+- **DataMemory** - registered-read BRAM holding the packed network.
+- **ControlUnit** - the three-state FSM above, producing `pc_enable`,
   `reg_write`, `mem_write`, `dmem_en`, `ir_write` and the mux selects.
 
 **A note on the diagram.** If you are looking for the classic textbook
-multi-cycle datapath with `IorD`, `IRWrite`, `ALUOut` and `A`/`B` temporaries —
+multi-cycle datapath with `IorD`, `IRWrite`, `ALUOut` and `A`/`B` temporaries -
 this is not that machine. It has three states rather than ten, no shared
 instruction/data memory, and no ALUOut register. The similarity is in the idea
 (a state machine sequencing a shared datapath), not the structure.
@@ -85,7 +85,7 @@ instruction/data memory, and no ALUOut register. The similarity is in the idea
 Both memories are inferred as true Block RAM. The conditions Vivado requires,
 all of which this design meets:
 
-1. The read must be registered — clocked into a flop on the same edge.
+1. The read must be registered - clocked into a flop on the same edge.
 2. The array must be indexed by a bounded address, not a full 32-bit word.
 3. No asynchronous reset on the output register.
 
@@ -100,7 +100,7 @@ distributed memory and the design will not place.
 | Network, one INT8 value per 32-bit word | ~3,450 Kb |
 | XC7S50 total BRAM | 2,700 Kb |
 
-It did not fit — not marginally, structurally. Packing four INT8 values into
+It did not fit - not marginally, structurally. Packing four INT8 values into
 each 32-bit word reduced data memory from **110,390 words to 28,509 words**,
 which fits with room for activations and scratch.
 
@@ -123,7 +123,7 @@ Data memory layout, word-addressed:
 | Activations | Scratch buffers for hidden layers |
 | Result | Argmax output word (word 28508) |
 
-[FILL — exact base addresses from `pack_data_mem_v3.py`.]
+[FILL - exact base addresses from `pack_data_mem_v3.py`.]
 
 **Addressing is word-based, not byte-based.** This differs from stock MIPS and
 is the source of one of the more time-consuming bugs in this project; see
@@ -158,7 +158,7 @@ ALU #(.ENABLE_MAC4(0), .ENABLE_MULT(0)) alu (...);
 
 Both instruction arms sit in the same combinational case statement, so an
 enabled-but-unused arm lengthens the critical path and widens the result mux on
-**every** instruction — including the `LW` / `MAC` / `SRL` sequence the baseline
+**every** instruction - including the `LW` / `MAC` / `SRL` sequence the baseline
 program actually executes. The routed critical path with MAC4 enabled runs
 
 ```
