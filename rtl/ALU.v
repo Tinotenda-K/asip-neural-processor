@@ -1,45 +1,90 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// ALU -- MAC4 build, timing-optimised
+// ALU -- parameterised, timing-aware
 //
-// CONFIGURATION FOR dnn_mac4.asm
-//   ENABLE_MAC4 = 1   the program uses MAC4 exclusively
-//   ENABLE_MAC  = 0   the program contains ZERO plain MAC instructions
-//   ENABLE_MULT = 0   unused
+// PURPOSE
+//   Combinational arithmetic and logic unit. Operation selected by funct.
+//   Includes the four instructions that make this an ASIP rather than a small
+//   MIPS clone: MAC, MAC4, RELU and (load-bearing here) SRA.
 //
-// Set ENABLE_MAC = 1 and ENABLE_MAC4 = 0 to rebuild for dnn_final_packed.asm
-// (the pre-MAC4 program) so the two can be compared on identical RTL.
+// PARAMETERS
+//   ENABLE_MAC4   default 0. Include the four-way SIMD multiply-accumulate.
+//   ENABLE_MULT   default 0. Include the 32x32 multiplier.
 //
-// TIMING CHANGES vs the previous version
-// --------------------------------------
-// 1. BALANCED ADDER TREE.  "p0 + p1 + p2 + p3" synthesises left-associative:
-//         ((p0+p1)+p2)+p3        3 carry chains in series
-//    then "+ rd" makes a 4th.  Restructured as
-//         (p0+p1) + (p2+p3)      2 carry chains
-//    then "+ rd" makes 3.  One full carry-chain delay removed from the
-//    critical path.
+//   WHY THESE ARE PARAMETERS AND NOT JUST UNUSED OPCODES
+//   Every operation lives in the same combinational case statement, so an arm
+//   that is present but never executed still lengthens the critical path and
+//   widens the result mux on EVERY instruction -- including the LW/MAC/SRL
+//   sequence the baseline program actually runs. 13 of the 24 logic levels on
+//   the routed critical path sit in the MAC4 adder tree (dot4_carry,
+//   dot4__47_carry, dot4__98_carry in the timing report).
 //
-// 2. MAC ARM DISABLED.  The plain-MAC case arm carried its own 32-bit adder
-//    and an input to the result mux, on every instruction, for an instruction
-//    the program never issues.
+//   Turn each on only when the assembled program uses it. The delta in LUTs,
+//   WNS and instruction count between configurations is the project's central
+//   quantitative result -- see results/benchmark.md.
 //
-// WHY NOT (* use_dsp = "yes" *)
-// ----------------------------
-// A DSP48E1 is a 25x18 multiplier; four 8x8 products would occupy four of
-// them at ~5% utilisation each. More importantly an UNPIPELINED DSP48E1
-// multiply costs roughly 3.5-4 ns on a -1 part, against ~1.5-2 ns for an 8x8
-// LUT multiply. The DSP only wins when its input and output registers are
-// used -- which is what Vivado's DPIP-1 warnings were asking for. This ALU is
-// fully combinational inside S_EXEC, so there is nowhere to put those
-// registers without adding FSM states. Forcing DSPs here makes WNS worse, and
-// the earlier build with 3 DSPs (MULT enabled) confirmed that empirically.
+// THE CUSTOM INSTRUCTIONS
 //
-// Revisit only if the ALU is ever pipelined.
+//   MAC   rd <- rd + sext(rs[7:0]) * sext(rt[7:0])
+//         rd is both source and destination; that is what makes it one
+//         instruction instead of a MULT into a temporary followed by an ADD.
+//         Reading only the LOW BYTE is deliberate: a packed weight word holds
+//         four INT8 values, and SRL by 8 slides the next lane into place. So a
+//         four-weight loop is MAC, SRL, MAC, SRL, ... with no masking and no
+//         unpacking into separate registers.
 //
-// ALSO FIXED (carried over)
-//   * MULT overflow: |prod[63:32] fires on every negative product, because
-//     sign extension fills the upper word with ones.
-//   * ADD overflow: sum[32] is the unsigned carry-out, not signed overflow.
+//   MAC4  rd <- rd + sum over i of sext(rs[8i+7:8i]) * sext(rt[8i+7:8i])
+//         All four lanes at once, four signed 8x8 products summed through a
+//         balanced adder tree. Once activations are packed four-per-word as
+//         well as weights, the entire SRL lane-sliding sequence disappears:
+//         12 instructions per group of four become 3. Whole-program effect is
+//         2.20x (447,785 -> 203,615 instructions).
+//
+//         Lane order is little-endian: lane 0 is bits [7:0]. It must match
+//         tools/pack_data_mem_v3.py exactly. A lane-order mismatch computes a
+//         valid-looking dot product of the wrong pairs.
+//
+//   RELU  rd <- rs[31] ? 32'd0 : rs
+//         A sign-bit test in two's complement. Folding it in removes a compare
+//         AND a branch from the inner loop -- and a branch costs three cycles
+//         here like everything else.
+//
+//   SRA   arithmetic right shift, for requantisation between layers.
+//         Must preserve sign. A logical shift turns small negative
+//         accumulators into large positives; the network still runs and still
+//         classifies, just wrongly. See docs/quantisation.md.
+//
+// TWO OVERFLOW BUGS FIXED HERE
+//
+//   ADD: the old test used sum[32] with
+//            wire signed [32:0] sum = {rs[31], rs} + {rt[31], rt};
+//        sum[32] is the UNSIGNED carry-out, which is not signed overflow.
+//        Correct test: sum[32] != sum[31]. Signed overflow occurs only when
+//        the two operands share a sign and the result does not.
+//
+//   MULT: the old test flagged overflow whenever prod[63:32] was non-zero.
+//        For a negative product, sign extension fills the upper word with
+//        ones, so it fired on every negative result. Correct test: the upper
+//        33 bits must all equal the sign bit of the low word --
+//            prod[63:31] != {33{prod[31]}}
+//
+//   Neither bug corrupted a result; both set a flag that nothing downstream
+//   consumed. They are recorded because a flag that is wrong is worse than one
+//   that is absent -- the next person to use it will trust it.
+//
+// SYNTHESIS NOTES
+//   The multiplies infer DSP48E1 slices. Vivado emits DPIP-1 warnings that the
+//   DSP A and B inputs are not pipelined. That is expected: pipelining the DSP
+//   would add a cycle to S_EXEC, and the FSM has no state to absorb it. The
+//   warnings are informational, not defects.
+//
+// CHANGE HISTORY
+//   - MAC4 and MULT moved behind parameters after timing analysis showed the
+//     MAC4 adder tree dominating the critical path in a build that never
+//     executed a MAC4.
+//   - ADD overflow: sum[32] -> sum[32] != sum[31].
+//   - MULT overflow: |prod[63:32] -> prod[63:31] != {33{prod[31]}}.
+//   - SRA added for inter-layer requantisation.
 //////////////////////////////////////////////////////////////////////////////////
 
 module ALU #(
