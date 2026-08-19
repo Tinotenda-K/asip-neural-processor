@@ -9,7 +9,7 @@
 //
 // WHAT IT CHECKS
 //   Expected result for the supplied input image: argmax = 3,
-//   with the ten output logits matching sim/verify_final.py BIT-EXACTLY.
+//   with the ten output logits matching sim_isa.py BIT-EXACTLY.
 //   Not approximately. In fixed-point integer arithmetic every operation is
 //   exactly defined, so any divergence is a real disagreement about semantics.
 //   Near-agreement is the most dangerous outcome, because it resembles rounding
