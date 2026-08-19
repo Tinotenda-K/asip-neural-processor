@@ -4,18 +4,21 @@
 //
 // PURPOSE
 //   Combinational arithmetic and logic unit. Operation selected by funct.
-//   Includes the four instructions that make this an ASIP rather than a small
-//   MIPS clone: MAC, MAC4, RELU and (load-bearing here) SRA.
+//   Includes the three instructions that make this an ASIP rather than a small
+//   MIPS clone: MAC, MAC4 and RELU.
 //
 // PARAMETERS
-//   ENABLE_MAC4   default 0. Include the four-way SIMD multiply-accumulate.
+//   ENABLE_MAC4   default 1. Include the four-way SIMD multiply-accumulate.
 //   ENABLE_MULT   default 0. Include the 32x32 multiplier.
+//   ENABLE_MAC    default 0. Set to 0 because the MAC4 program issues zero
+//                            plain MAC instructions, so its 32-bit adder and
+//                            mux input were pure overhead.
 //
 //   WHY THESE ARE PARAMETERS AND NOT JUST UNUSED OPCODES
 //   Every operation lives in the same combinational case statement, so an arm
 //   that is present but never executed still lengthens the critical path and
 //   widens the result mux on EVERY instruction -- including the LW/MAC/SRL
-//   sequence the baseline program actually runs. 13 of the 24 logic levels on
+//   sequence the baseline program actually runs. 8 of the 20 logic levels on
 //   the routed critical path sit in the MAC4 adder tree (dot4_carry,
 //   dot4__47_carry, dot4__98_carry in the timing report).
 //
@@ -49,10 +52,12 @@
 //         AND a branch from the inner loop -- and a branch costs three cycles
 //         here like everything else.
 //
-//   SRA   arithmetic right shift, for requantisation between layers.
-//         Must preserve sign. A logical shift turns small negative
-//         accumulators into large positives; the network still runs and still
-//         classifies, just wrongly. See docs/quantisation.md.
+//   SRA   arithmetic right shift. NOT used by the current program:
+//         requantisation runs immediately after RELU, so the accumulator is
+//         non-negative and SRL is safe. SRA exists for the output layer and
+//         for any future path that requantises a signed value -- there, a
+//         logical shift would turn small negatives into large positives and
+//         the network would still classify, just wrongly.
 //
 // TWO OVERFLOW BUGS FIXED HERE
 //
@@ -73,17 +78,16 @@
 //   that is absent -- the next person to use it will trust it.
 //
 // SYNTHESIS NOTES
-//   The multiplies infer DSP48E1 slices. Vivado emits DPIP-1 warnings that the
-//   DSP A and B inputs are not pipelined. That is expected: pipelining the DSP
-//   would add a cycle to S_EXEC, and the FSM has no state to absorb it. The
-//   warnings are informational, not defects.
+//   DSPs are not forced because an unpipelined DSP48E1 multiply costs ~3.5–4 ns
+//   against ~1.5–2 ns for an 8×8 LUT multiply, and there's no FSM state in
+//   which to register it.
 //
 // CHANGE HISTORY
 //   - MAC4 and MULT moved behind parameters after timing analysis showed the
 //     MAC4 adder tree dominating the critical path in a build that never
 //     executed a MAC4.
-//   - ADD overflow: sum[32] -> sum[32] != sum[31].
-//   - MULT overflow: |prod[63:32] -> prod[63:31] != {33{prod[31]}}.
+//   - ADD overflow: sum[32] -> (rs[31] == rt[31]) && (sum[31] != rs[31]).
+//   - MULT overflow: |prod[63:32] -> ~(&prod[63:31]) & ~(|prod[63:31]).
 //   - SRA added for inter-layer requantisation.
 //////////////////////////////////////////////////////////////////////////////////
 
