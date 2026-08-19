@@ -58,7 +58,7 @@
 //
 // PIN BUDGET
 //   pc_out was originally 16 bits, occupying every LED. The PC only reaches
-//   616 so the upper bits were permanently
+//   max 620 (156 instructions) so the upper bits were permanently
 //   zero. Narrowing it to 11 bits freed five LEDs for result_out and done.
 //
 // CHANGE HISTORY
