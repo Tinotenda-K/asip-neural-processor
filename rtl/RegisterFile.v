@@ -35,9 +35,13 @@
 // CRITICAL PATH
 //   The read mux is the second stage of the design's critical path
 //   (IMEM BRAM out -> RF read mux -> ALU -> DMEM address). Widening the
-//   register file or adding a third read port would extend it, which is one
-//   reason MAC4 takes both operands from existing ports rather than reading a
-//   third.
+//   register file or adding a third read port would extend it.
+//
+//   The third read port exists BECAUSE of MAC and MAC4. Both use rd as an
+//   accumulator input as well as the destination, so a single instruction
+//   reads rs, rt and rd. This is what makes the accumulate fused rather than
+//   a multiply followed by a separate add, and it is the main structural
+//   cost of the ASIP extension: a third 32:1 read mux on the critical path.
 //
 // CHANGE HISTORY
 //   - Write port gated on reg_write from the FSM rather than on opcode decode.
