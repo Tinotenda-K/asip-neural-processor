@@ -16,7 +16,7 @@
 //   and is usually a scale error.
 //
 // BEFORE RUNNING
-//   Confirm instruction.mem and data.mem in the simulation directory were
+//   Confirm instruction_mac4.mem and data_mac4.mem in the simulation directory were
 //   produced by the SAME toolchain version as each other -- assembler output
 //   paired with pack_data_mem_v3.py output. A version mismatch between them
 //   simulates cleanly and produces wrong logits, which is exactly what happened
