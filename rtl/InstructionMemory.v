@@ -37,7 +37,7 @@
 //   original resource overflow as much as the read style did.
 //
 // INITIALISATION
-//   initial $readmemb("instruction.mem", mem);
+//   initial $readmemb("instruction_mac4.mem", mem);
 //   Vivado reads this at elaboration and bakes the contents into the bitstream.
 //
 //   IF THE FILE IS MISSING, the ROM synthesises as all-zeros. Every instruction
