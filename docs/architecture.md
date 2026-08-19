@@ -125,6 +125,7 @@ Data memory layout, word-addressed:
 
 ### MEMORY MAP word addresses
 | header   |   0 ..  |  23   |  8 words per layer |
+| --- | --- | --- | --- |
 | image   |   24 ..  |  219   |  196 words, PACKED |
 | L1 w   |   220 ..  | 25307   |  25088 words   b 25308..25435   y 25436..25467 (32 packed) |
 | L2 w  |  25468 .. | 27515   |   2048 words   b 27516..27579   y 27580..27595 (16 packed) |
