@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 560" width="880" height="560" font-family="Helvetica, Arial, sans-serif">
+  <rect width="880" height="560" fill="#ffffff"/>
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#1f3a5f"/>
+    </marker>
+  </defs>
+
+  <text x="440" y="40" text-anchor="middle" font-size="21" font-weight="bold" fill="#1f3a5f">Multi-cycle control FSM</text>
+  <text x="440" y="63" text-anchor="middle" font-size="13" fill="#5a6b7d">Three states, unconditional sequence. CPI = 3 for every instruction.</text>
+
+  <!-- reset -->
+  <line x1="150" y1="130" x2="196" y2="130" stroke="#1f3a5f" stroke-width="2" marker-end="url(#ah)"/>
+  <text x="148" y="120" text-anchor="end" font-size="12" fill="#5a6b7d">rst</text>
+
+  <!-- states -->
+  <ellipse cx="285" cy="130" rx="88" ry="40" fill="#eef3f9" stroke="#1f3a5f" stroke-width="2"/>
+  <text x="285" y="127" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f3a5f">S_FETCH</text>
+  <text x="285" y="146" text-anchor="middle" font-size="11" fill="#5a6b7d">instruction fetch</text>
+
+  <ellipse cx="285" cy="290" rx="88" ry="40" fill="#eef3f9" stroke="#1f3a5f" stroke-width="2"/>
+  <text x="285" y="287" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f3a5f">S_EXEC</text>
+  <text x="285" y="306" text-anchor="middle" font-size="11" fill="#5a6b7d">decode, ALU, memory</text>
+
+  <ellipse cx="285" cy="450" rx="88" ry="40" fill="#eef3f9" stroke="#1f3a5f" stroke-width="2"/>
+  <text x="285" y="447" text-anchor="middle" font-size="15" font-weight="bold" fill="#1f3a5f">S_WB</text>
+  <text x="285" y="466" text-anchor="middle" font-size="11" fill="#5a6b7d">writeback, PC update</text>
+
+  <!-- transitions -->
+  <line x1="285" y1="170" x2="285" y2="243" stroke="#1f3a5f" stroke-width="2" marker-end="url(#ah)"/>
+  <line x1="285" y1="330" x2="285" y2="403" stroke="#1f3a5f" stroke-width="2" marker-end="url(#ah)"/>
+  <text x="297" y="212" font-size="11.5" fill="#5a6b7d">IR valid</text>
+  <text x="297" y="372" font-size="11.5" fill="#5a6b7d">result ready</text>
+
+  <!-- loop back -->
+  <path d="M197,450 L120,450 L120,130 L193,130" fill="none" stroke="#1f3a5f" stroke-width="2" marker-end="url(#ah)"/>
+  <text x="112" y="296" text-anchor="end" font-size="11.5" fill="#5a6b7d">next</text>
+  <text x="112" y="311" text-anchor="end" font-size="11.5" fill="#5a6b7d">instruction</text>
+
+  <!-- action boxes -->
+  <g font-size="11.5" fill="#33475b">
+    <line x1="373" y1="130" x2="425" y2="130" stroke="#c8d2dc" stroke-width="1.5"/>
+    <rect x="428" y="92" width="300" height="76" rx="4" fill="#fafbfc" stroke="#c8d2dc"/>
+    <text x="442" y="112" font-weight="bold" fill="#1f3a5f">Actions</text>
+    <text x="442" y="131">IMEM read issued at PC</text>
+    <text x="442" y="149">IR &#8592; IMEM[PC]  (registered read)</text>
+
+    <line x1="373" y1="290" x2="425" y2="290" stroke="#c8d2dc" stroke-width="1.5"/>
+    <rect x="428" y="243" width="300" height="94" rx="4" fill="#fafbfc" stroke="#c8d2dc"/>
+    <text x="442" y="263" font-weight="bold" fill="#1f3a5f">Actions</text>
+    <text x="442" y="282">register file read: rs, rt</text>
+    <text x="442" y="300">ALU evaluates (incl. MAC / MAC4)</text>
+    <text x="442" y="318">DMEM addressed for LW / SW</text>
+
+    <line x1="373" y1="450" x2="425" y2="450" stroke="#c8d2dc" stroke-width="1.5"/>
+    <rect x="428" y="412" width="300" height="76" rx="4" fill="#fafbfc" stroke="#c8d2dc"/>
+    <text x="442" y="432" font-weight="bold" fill="#1f3a5f">Actions</text>
+    <text x="442" y="451">RF[rd] &#8592; ALU result or DMEM data</text>
+    <text x="442" y="469">PC &#8592; branch / jump target, or PC+4</text>
+  </g>
+
+  <!-- why note -->
+  <rect x="120" y="508" width="608" height="38" rx="4" fill="#fff8ec" stroke="#e0c896"/>
+  <text x="134" y="532" font-size="11.5" fill="#6b5730">Separating fetch from execute allows registered memory reads, which is what lets Vivado infer Block RAM rather than LUTRAM.</text>
+</svg>
