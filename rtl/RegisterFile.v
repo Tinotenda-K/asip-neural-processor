@@ -9,8 +9,8 @@
 // INTERFACE
 //   clk                                   core clock (50 MHz)
 //   rst                                   synchronised reset
-//   read_reg1, read_reg2, read_reg3       [4:0]  read addresses (rs, rt)
-//   read_data1, read_data2, read_data2    [31:0] combinational reads
+//   read_reg1, read_reg2, read_reg3       [4:0]  read addresses (rs, rt, rd)
+//   read_data1, read_data2, read_data3    [31:0] combinational reads
 //   write_reg                             [4:0]  write address (rd or rt)
 //   write_data                            [31:0] value to commit
 //   reg_write                             write enable -- asserted in S_WB only
