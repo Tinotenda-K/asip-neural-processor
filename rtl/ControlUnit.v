@@ -1,29 +1,80 @@
 `timescale 1ns / 1ps
 //////////////////////////////////////////////////////////////////////////////////
-// ControlUnit - 3-state multi-cycle FSM
+// ControlUnit
 //
-// The original was purely combinational (single-cycle). Block RAM has a
-// registered read, so a fetch and a data read each need their own clock edge.
-// This adds a minimal 3-state FSM around the SAME combinational decoder.
+// PURPOSE
+//   Three-state finite state machine sequencing the datapath, plus instruction
+//   decode. Produces every control signal the datapath consumes.
 //
-//   S_FETCH : imem_en=1. At the closing edge, IMEM latches mem[pc].
-//             'instruction' becomes valid for S_EXEC.
-//             (Nothing else is enabled: 'instruction' still shows the
-//              PREVIOUS instruction during this state, which is harmless
-//              because every write enable is gated off here.)
+// STATE MACHINE
+//   S_FETCH -> S_EXEC -> S_WB -> S_FETCH, unconditionally.
+//   CPI = 3 for every instruction, with no exceptions -- there is no early-out
+//   path and no stall.
 //
-//   S_EXEC  : decode, register read, ALU, dmem_en=1 with addr=alu_result.
-//             SW commits here. At the closing edge DMEM latches its output.
+//     S_FETCH   Instruction memory read is issued at the current PC. The BRAM
+//               output register captures the instruction word at the end of
+//               this cycle, so it is valid for the whole of S_EXEC.
+//               reg_write = 0, pc_enable = 0, mem_write = 0.
 //
-//   S_WB    : mem_read_data valid. reg_write commits. pc_enable=1.
+//     S_EXEC    Register file read (rs, rt). ALU evaluates. For LW/SW the data
+//               memory is addressed with alu_result and dmem_en is asserted.
+//               Nothing commits.
+//               reg_write = 0, pc_enable = 0.
 //
-// No new datapath registers are required: the two BRAM output registers act
-// as the instruction register and the memory data register, and alu_result
-// stays valid through S_WB because 'instruction' is held and the register
-// file is not written until the closing edge of S_WB.
+//     S_WB      Register file write port commits for R-type and LW.
+//               PC advances to branch target, jump target or PC+4.
+//               pc_enable = 1.
 //
-// CPI = 3, but the ~1500-level LUTRAM mux chain is gone, so Fmax rises by far
-// more than 3x. Net throughput is higher than the single-cycle version.
+// WHY THREE STATES AND NOT ONE
+//   The single-cycle version required both memories to answer combinationally.
+//   Vivado cannot map an asynchronous read to Block RAM, so it built the
+//   memories from distributed LUTRAM: 65,536 RAMS64E primitives required
+//   against roughly 9,600 available. Synthesis passed and implementation
+//   failed with seven DRC resource errors.
+//
+//   Registered reads need a cycle boundary between presenting an address and
+//   consuming the data. That boundary is what S_FETCH -> S_EXEC provides.
+//
+// WHY THREE STATES AND NOT FIVE
+//   Costed and rejected. Adding an ALUOut register alone pushes CPI from 3 to
+//   4: 814,460 cycles against 610,845, which at 50 MHz makes inference SLOWER
+//   (16.29 ms vs 12.22 ms). It only pays above roughly 100 MHz, and 100 MHz
+//   needs the full IR/A/B/ALUOut split plus a pipelined ALU -- S_EXEC was
+//   estimated at ~9.03 ns against a 9.07 ns budget with MAC4 enabled.
+//
+// DECODE
+//   opcode -> instruction class -> control signal set.
+//   R-type operations are distinguished by funct, which is passed through to
+//   the ALU rather than decoded here.
+//
+// OUTPUTS
+//   pc_enable       PC updates (S_WB only)
+//   reg_write       register file write enable (S_WB, R-type and LW only)
+//   mem_write       data memory write enable (S_EXEC, SW only)
+//   dmem_en         data memory enable (S_EXEC, LW and SW)
+//   mem_to_reg      writeback source select: DMEM data vs ALU result
+//   alu_src         ALU operand B select: rt vs sign-extended immediate
+//   reg_dst         write register select: rd vs rt
+//   branch_equal    BEQ decoded
+//   branch_not_equal BNE decoded
+//   jump            J decoded
+//   mem_read        data memory read enable
+//   alu_op          ALU operation code
+//   pc_src          Selects next PC source (00-> PC + 4, 01-> branch, 10-> jump)
+//   imem_en         Instruction memory enable
+//   dmem_en         Data memory enable
+//
+// NOTE FOR ANYONE READING THIS EXPECTING THE TEXTBOOK MACHINE
+//   This is not the Patterson & Hennessy multi-cycle controller. That FSM has
+//   ten states, a shared instruction/data memory selected by IorD, and A/B/
+//   ALUOut temporaries. This design has three states, separate memories, and
+//   no temporaries. The shared idea is a state machine sequencing a datapath;
+//   the structure is different.
+//
+// CHANGE HISTORY
+//   - Rewritten from combinational single-cycle decode to the three-state FSM.
+//   - Added pc_enable, reg_write gating and dmem_en so that nothing commits
+//     outside its intended state.
 //////////////////////////////////////////////////////////////////////////////////
 
 module ControlUnit(
