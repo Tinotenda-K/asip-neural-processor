@@ -7,7 +7,7 @@
 //
 // INTERFACE
 //   clk         core clock (50 MHz)
-//   rst         synchronised reset; PC returns to [CHECK: 32'h0]
+//   rst         synchronised reset; PC returns to 32'h0
 //   pc_enable   update enable -- asserted by ControlUnit in S_WB only
 //   pc_src     [31:0] branch target, jump target or PC+4, selected in Datapath
 //   branch_target     Target address for branching instruction BEQ/ BNE
