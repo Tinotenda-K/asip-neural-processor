@@ -59,7 +59,7 @@ design cannot reach with the MAC4 ALU in the path.
 
 ## Datapath
 
-[docs/img/datapath.png]
+![Datapath](docs/img/datapath.png)
 
 Structural summary:
 
