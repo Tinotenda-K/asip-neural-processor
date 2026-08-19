@@ -18,15 +18,15 @@
 //
 //       IMEM BRAM output -> register-file read mux -> ALU -> DMEM address
 //
-//   24 logic levels, of which 13 sit inside the MAC4 adder tree when
+//   20 logic levels, of which 8 sit inside the MAC4 adder tree when
 //   ENABLE_MAC4 = 1. This is why MAC4 is parameterised rather than always
 //   present: the arm lengthens this path on every instruction, executed or not.
 //
 // WHAT IS NOT ON THE CRITICAL PATH
-//   branch_taken and the branch/jump target adders. The top five failing paths
-//   all ended at DMEM address inputs or register-file write ports; none at the
-//   PC. The 32-bit branch comparator has slack to spare, so splitting or
-//   registering it buys nothing.
+//   branch_taken and the branch/jump target adders. The top five worst paths
+//   all ended at done_reg/CE and result_out_reg[*]/CE - the result comparator;
+//   none at the PC. The 32-bit branch comparator has slack to spare, so
+//   splitting or registering it buys nothing.
 //
 //   Similarly, these are pure wire aliases with zero logic and zero delay:
 //
