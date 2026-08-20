@@ -23,10 +23,12 @@ F7 muxes         : ~35,359
 F8 muxes         : ~17,490
 ```
 
-A 64K × 32 array with an asynchronous read costs `(65536 / 64) × 32 = 32,768`
-RAM64X1S primitives. Two such arrays — instruction and data memory — is exactly
-65,536. The F7/F8 counts follow from the mux tree needed to select one of 1,024
-rows per bit.
+`DataMemory` was declared `reg [31:0] mem [0:131071]`. A 128K × 32 array with an
+asynchronous read costs `(131072 / 64) × 32 = 65,536` RAM64X1S primitives — the
+reported figure exactly, from one array. `InstructionMemory` was only 1,024
+words and read-only, so it inferred as ROM and contributed almost nothing. The
+F7/F8 counts follow from the mux tree needed to select one row per bit out of
+that array.
 
 So both memories had been declared full-depth with combinational reads. Vivado
 cannot map an asynchronous read to Block RAM, because BRAM registers its output.
@@ -103,17 +105,23 @@ adding `MAC4`.
 dictionary rather than its **funct** dictionary. Both are R-type: their opcode
 field is the R-type marker and the operation lives in `funct`.
 
-Registered as opcodes, their values would have been emitted in the opcode field
-— colliding with a real opcode. In this ISA, with `BNE`. Every `SRA` in a
-requantisation sequence would have assembled as a conditional branch.
+Registered as opcodes, their funct values would have been emitted in the
+**opcode** field: `001011` for `SRA` and `001100` for `MAC4`. Neither is a
+defined opcode in this ISA — the highest in use is `BNE` at `001000` — so both
+would have fallen through `ControlUnit.v`'s default branch.
 
-**Consequence had it shipped.** Not a wrong number — a wrong control flow.
-Branches to arbitrary addresses inside a tight inner loop, presenting as a hang
-or as garbage that changes between runs. Far harder to trace than a scale error,
-because the failure would not be in the arithmetic at all.
+**Consequence had it shipped.** Not a crash and not a wrong control flow: a
+silent no-op. Every `SRA` in a requantisation sequence and every `MAC4` in the
+inner loop would have assembled, executed, retired, and done nothing. The
+accumulator would never have been written, the network would have classified off
+uninitialised state, and nothing in the simulation transcript would have looked
+wrong. This is the same failure family as bugs 2 and 3 above — it runs, and it
+is wrong — which is why it was found by reading the assembler rather than by
+running anything.
 
-**Fix.** Move both to the funct table, and add an assertion that no mnemonic
-appears in both dictionaries. The instruction table in [isa.md](isa.md) is
+**Fix.** Move both to the funct table with opcode `000000`, and add an assertion
+that no R-type mnemonic carries a non-zero opcode. Both are now correct in
+`assembler.py` and match `ALU.v`. The instruction table in [isa.md](isa.md) is
 generated from the same source for the same reason: documentation that can
 silently disagree with the tool is a bug waiting to be written.
 
