@@ -16,7 +16,7 @@
 
 The first version of this processor was single-cycle: fetch, decode, execute and
 writeback all resolved combinationally within one clock edge. That requires both
-memories to answer *asynchronously* — the instruction word has to be available
+memories to answer *asynchronously* - the instruction word has to be available
 in the same cycle the PC presents its address.
 
 Vivado cannot map an asynchronous-read array to Block RAM, because BRAM
@@ -31,7 +31,7 @@ XC7S50 LUTRAM-capable LUTs   =  ~9,600
 
 That single array accounts for the whole overflow. InstructionMemory was only
 1,024 words and read-only, so it inferred as ROM and contributed almost nothing.
-The reported requirement of 65,536 RAMS64E matches the calculation exactly — the
+The reported requirement of 65,536 RAMS64E matches the calculation exactly - the
 diagnosis was arithmetic, not inference.
 
 Synthesis passed, because synthesis only estimates. Placement failed with seven
@@ -59,7 +59,7 @@ comparison between builds meaningful: 203,615 instructions × 3 = 610,845 cycles
 = 12.22 ms at 50 MHz.
 
 The obvious criticism is that most instructions do not need three cycles. That
-is true, and the trade is discussed in the README's closing section — the short
+is true, and the trade is discussed in the README's closing section - the short
 version is that the alternatives either raise CPI further or need a clock this
 design cannot reach with the MAC4 ALU in the path.
 
@@ -69,17 +69,17 @@ design cannot reach with the MAC4 ALU in the path.
 
 Structural summary:
 
-- **ProgramCounter** — holds PC, updated only in `S_WB`. Sources: PC+4, branch
+- **ProgramCounter** - holds PC, updated only in `S_WB`. Sources: PC+4, branch
   target, jump target.
-- **InstructionMemory** — registered-read BRAM. Its output register serves as
+- **InstructionMemory** - registered-read BRAM. Its output register serves as
   the instruction register; there is no separate IR.
-- **RegisterFile** — 32 × 32-bit, **three** asynchronous read ports, one
+- **RegisterFile** - 32 × 32-bit, **three** asynchronous read ports, one
   synchronous write port. Written only in `S_WB`. Register 0 hardwired to zero.
-- **ALU** — parameterised. Always present: ADD, SUB, AND, OR, XOR, SLL, SRL,
+- **ALU** - parameterised. Always present: ADD, SUB, AND, OR, XOR, SLL, SRL,
   SRA, NOT, RELU. Behind parameters: MAC, MAC4, MULT.
-- **DataMemory** — registered-read BRAM holding the packed network. Its output
+- **DataMemory** - registered-read BRAM holding the packed network. Its output
   register serves as the memory data register; there is no separate MDR.
-- **ControlUnit** — the three-state FSM above, producing `pc_enable`,
+- **ControlUnit** - the three-state FSM above, producing `pc_enable`,
   `reg_write`, `mem_write`, `imem_en`, `dmem_en` and the mux selects.
 
 ### Why three read ports
@@ -91,12 +91,12 @@ A stock MIPS R-type reads two registers. This one reads three, because `MAC` and
 result = rd + {{14{dot4[17]}}, dot4};   // MAC4
 ```
 
-That is what makes the accumulate *fused* — one instruction rather than a
+That is what makes the accumulate *fused* - one instruction rather than a
 multiply into a temporary followed by an add. It is also the main structural
 cost of the ASIP extension: a third 32:1 read mux sitting on the critical path.
 
 **A note on the diagram.** If you are looking for the classic textbook
-multi-cycle datapath with `IorD`, `IRWrite`, `ALUOut` and `A`/`B` temporaries —
+multi-cycle datapath with `IorD`, `IRWrite`, `ALUOut` and `A`/`B` temporaries -
 this is not that machine. It has three states rather than ten, separate
 instruction and data memories, and no explicit temporaries: the two BRAM output
 registers do the job of IR and MDR. The similarity is in the idea (a state
@@ -107,7 +107,7 @@ machine sequencing a shared datapath), not the structure.
 Both memories are inferred as true Block RAM. The conditions Vivado requires,
 all of which this design meets:
 
-1. The read must be registered — clocked into a flop on the same edge.
+1. The read must be registered - clocked into a flop on the same edge.
 2. The array must be indexed by a bounded address, not a full 32-bit word.
 3. No asynchronous reset on the output register.
 
@@ -122,7 +122,7 @@ distributed memory and the design will not place.
 | Network, one INT8 value per 32-bit word | ~3,450 Kb |
 | XC7S50 total BRAM | 2,700 Kb |
 
-It did not fit — not marginally, structurally. Packing four INT8 values into
+It did not fit - not marginally, structurally. Packing four INT8 values into
 each 32-bit word reduced data memory from **110,390 words to 27,777 words**,
 which fits comfortably in a 32,768-word array (33 BRAM tiles of 75).
 
@@ -172,7 +172,7 @@ Total 27,777 words. The header for layer `l` starts at word `8*l`:
 | +6 | `w_row_stride` | 196 | 32 | 16 |
 | +7 | `requant_shift` | 11 | 8 | 0 |
 
-Layer `l+1`'s `x_base` equals layer `l`'s `y_base` — activations are written
+Layer `l+1`'s `x_base` equals layer `l`'s `y_base` - activations are written
 once and read in place.
 
 **Addressing is word-based, not byte-based.** `LW r5, 3(r10)` reads the word at
@@ -256,7 +256,7 @@ Clocking Wizard MMCM. Four changes, and the third is the one that bites.
    which makes it far worse than a failure that is total.
 
 **What it costs.** 610,845 cycles at 45 MHz is **13.57 ms**, against 12.22 ms at
-50 MHz — 11% slower for roughly 2 ns of extra slack, plus one MMCM of the five
+50 MHz - 11% slower for roughly 2 ns of extra slack, plus one MMCM of the five
 on the device and a lock-time delay at power-on. Whether that is a good trade
 depends on whether the board is a demo or a product. For this project it was
 not taken: 50 MHz closed, and the divider is one flop with no lock semantics to
@@ -295,7 +295,7 @@ IMEM BRAM out -> register-file read mux -> ALU -> register-file write port
 logic 9.164 ns (47.1%), route 10.282 ns (52.9%)
 ```
 
-Both begin at the instruction-memory BRAM output register — the shape of a
+Both begin at the instruction-memory BRAM output register - the shape of a
 multi-cycle machine, where everything decode-dependent stacks behind a late
 instruction word. Route delay dominates the baseline and is close to half in the
 SIMD build.
@@ -303,7 +303,7 @@ SIMD build.
 The **endpoints** differ, and that is the result. The baseline's worst path ends
 at the data-memory address port: `LW`/`SW` address arithmetic, with five CARRY4s
 of address adder. The MAC4 build's worst path ends at the **register-file write
-port** — the accumulator writeback — carrying eleven CARRY4s. Six extra levels
+port** - the accumulator writeback - carrying eleven CARRY4s. Six extra levels
 of carry logic terminating where `MAC4` deposits its result is the dot-product
 tree and its 32-bit accumulate.
 
