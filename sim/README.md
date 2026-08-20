@@ -1,4 +1,4 @@
-# ISA simulator — the golden model
+# ISA simulator - the golden model
 
 An independent implementation of the processor's instruction set in Python, used
 as a reference to verify the hardware bit-exactly.
@@ -7,7 +7,7 @@ as a reference to verify the hardware bit-exactly.
 
 A custom processor running a network you quantised yourself has no trustworthy
 component. If the output is wrong, the fault could be in the RTL, the assembler,
-the quantisation scales, the memory packing, or the assembly program — and a
+the quantisation scales, the memory packing, or the assembly program - and a
 wrong classification points at none of them.
 
 An independent implementation collapses that search space. When the hardware and
@@ -20,9 +20,9 @@ Every bug in this project except the resource overflow was found this way.
 
 | File | Purpose |
 |---|---|
-| `isa_sim_core.py` | The interpreter. Decodes and executes each instruction against a register file and a 32,768-word memory image, mirroring the RTL's semantics: sign extension, `R0` hardwired to zero, word-addressed loads and stores, byte-oriented PC with word branch offsets, little-endian lane order in `MAC4`, and a self-jump as halt. Shared by both drivers so the simulator exists in exactly one place — a previous version had a copy in each file, and they drifted. |
+| `isa_sim_core.py` | The interpreter. Decodes and executes each instruction against a register file and a 32,768-word memory image, mirroring the RTL's semantics: sign extension, `R0` hardwired to zero, word-addressed loads and stores, byte-oriented PC with word branch offsets, little-endian lane order in `MAC4`, and a self-jump as halt. Shared by both drivers so the simulator exists in exactly one place - a previous version had a copy in each file, and they drifted. |
 | `sim_isa.py` | Single-case driver. Runs one real network in detail and reports instruction count, cycles at CPI 3, milliseconds, the hardware logits, the golden logits and the float reference. |
-| `verify_final.py` | Regression harness. Runs the **same** assembled binary against four networks — the real one plus three synthetic ones at different weight magnitudes — and reports pass/fail per case. |
+| `verify_final.py` | Regression harness. Runs the **same** assembled binary against four networks - the real one plus three synthetic ones at different weight magnitudes - and reports pass/fail per case. |
 
 ## Usage
 
@@ -62,7 +62,7 @@ from these runs.
 They are not redundant, and the distinction matters.
 
 `sim_isa.py` proves the **hardware and the model agree on the real network**. It
-reads the real `$readmemb` images — the same files the RTL loads — as-is, and
+reads the real `$readmemb` images - the same files the RTL loads - as-is, and
 checks the image's word count against what the packer expects before executing
 anything, which catches a v2/v3 layout mismatch immediately.
 
@@ -70,7 +70,7 @@ anything, which catches a v2/v3 layout mismatch immediately.
 weights**. Cases 1 to 3 are deliberately synthetic: pseudo-random networks at
 three weight magnitudes, generated fresh each run. Because this ISA has no
 variable-shift instruction, requantisation is a countdown loop of single-bit
-`SRL`s reading the shift out of header word +7 — so a network with different
+`SRL`s reading the shift out of header word +7 - so a network with different
 weight magnitudes gets a different shift, and the same binary has to adapt to it
 at runtime. Synthetic data is the point of this harness, not a shortcut.
 
@@ -95,7 +95,7 @@ Stated rather than discovered later:
 
 - **`SRA` takes the wrong source operand.** `isa_sim_core.py` computes
   `rs >>> shamt`; `ALU.v` computes `rt >>> shamt`, matching `SLL` and `SRL`.
-  Latent only because neither program executes `SRA` — both requantise with
+  Latent only because neither program executes `SRA` - both requantise with
   `SRL` after `RELU`. Fix the simulator before any program uses `SRA`.
 - **The simulator does not model the ALU parameters.** It always executes `MAC`
   and `MAC4`, whereas hardware built with `ENABLE_MAC4(0)` returns zero for
@@ -110,5 +110,5 @@ Stated rather than discovered later:
 When adding an instruction, add it here **first**, run the program in the model,
 and confirm the instruction count and output change as expected. Then implement
 it in RTL. Building the reference before the hardware means the hardware has
-something to be wrong against from its first simulation — which is how `MAC4`
+something to be wrong against from its first simulation - which is how `MAC4`
 was brought up.
