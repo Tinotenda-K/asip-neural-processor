@@ -20,9 +20,10 @@ multiply-accumulate maps onto DSP48E1 slices and LUT logic directly.
 | 3 | 64 × 10 = 640 |
 | **Total** | **109,184** plus biases |
 
-At float32 that is roughly 3,500 Kb of weights alone. The XC7S50 has **2,700 Kb**
-of Block RAM in total. Float was never an option; INT8 is what makes the network
-fit at all.
+At float32 that is 109,184 × 32 bits ≈ **3,412 Kb** of weights alone, and the
+full unpacked image — weights, biases, input, activations, header — comes to
+110,390 words ≈ **3,450 Kb**. The XC7S50 has **2,700 Kb** of Block RAM in total.
+Float was never an option; INT8 is what makes the network fit at all.
 
 ---
 
@@ -117,7 +118,11 @@ Four INT8 values are packed per 32-bit word, little-endian by lane:
 | | Words |
 |---|---|
 | Unpacked, one value per word | 110,390 |
-| Packed, four per word | **28,509** |
+| Packed, four per word (`pack_data_mem_v3.py`) | **27,777** |
+
+Result word 27,776; 33 BRAM tiles. If a layout of **28,509** words with result
+word 28,508 appears anywhere, that is the obsolete **v2** packer — see the
+warning below.
 
 That is what makes the design placeable — and it is also what makes `MAC4`
 worth having, because four operands arrive already aligned in one word.
@@ -135,28 +140,57 @@ handles this; the padding is why the packed word count is not exactly
 ## The flow
 
 ```
-Keras .h5
+real_level_2.ipynb                          model training
     |
-    |  tools/export_weights.py
-    |    - extract weights and biases per layer
-    |    - compute per-tensor power-of-two scales
-    |    - quantise to INT8, biases at accumulator scale
-    |    - emit dnn_parameters_final.txt
+    |  export cell: writes level_2_weights.txt
+    |  then, by hand:  rename to dnn_parameters_final.txt
+    |                  prepend the input size to line 2  ->  784 128 64 10
     v
-dnn_parameters_final.txt
-    |
+dnn_parameters_final.txt        COMMITTED.  Floats, not yet quantised.
+    |                           This is where the reproducible pipeline starts.
     |  tools/pack_data_mem_v3.py
+    |    - calibrate per-layer activation scales from the float model
+    |    - quantise to INT8, biases at accumulator scale
+    |    - derive the power-of-two requant shift per layer
     |    - pack 4 INT8 per 32-bit word, lane-aligned
-    |    - lay out header, weights, biases, input, scratch, result
+    |    - lay out header, weights, biases, input, activations, result
     |    - emit $readmemb image
     v
-data.mem  ->  DataMemory.v
+data_mac4.mem  ->  DataMemory.v
 ```
 
-**Use `pack_data_mem_v3.py`.** Earlier versions produced a different memory
-layout, and running v2's packer against v3's assembly gives a design that
-simulates cleanly and computes nonsense. Only v3 is in this repository, for
-exactly that reason.
+**Quantisation happens in the packer.** Every scale, shift and INT8 conversion
+is computed in `pack_data_mem_v3.calibrate()`. This is deliberate: the shifts
+depend on the activation ranges of the specific input image, so they are
+calibrated at pack time and written into header word +7 rather than baked into
+the parameter file. Nothing upstream of the packer quantises anything.
+
+### Where `dnn_parameters_final.txt` came from
+
+`dnn_parameters_final.txt` is checked in, so the pipeline above reproduces from
+it without re-running any training. The file's own history, recorded here for
+completeness rather than as a build step:
+
+The model was trained in `real_level_2.ipynb`, whose export cell writes
+`level_2_weights.txt` — the same format, with two differences that were fixed by
+hand:
+
+1. **The file was renamed** to `dnn_parameters_final.txt`.
+2. **The input size was prepended to line 2.** The notebook writes only the
+   layer units (`128 64 10`); `parse_dnn_parameters` requires `num_layers + 1`
+   sizes with the input size first (`784 128 64 10`) and raises otherwise. This
+   is the error the packer reports as *"Line 2 must list 4 sizes (input size
+   first)"*.
+
+Two caveats if you regenerate rather than use the committed file. The notebook
+as committed builds **784 → 10 → 10 → 10**, not the network this processor runs
+— the final model came from a run with the `Dense` units changed to 128 / 64 /
+10 that was not saved back. And a 10-unit hidden layer would be rejected by the
+packer anyway, because the assembly packs activations four to a word and flushes
+on every fourth neuron, so hidden layers must be a multiple of four.
+
+Regenerating the weights therefore means retraining, and the committed
+parameter file exists precisely so that nobody has to.
 
 ---
 
@@ -165,8 +199,24 @@ exactly that reason.
 Do not trust it. Check it:
 
 ```bash
-python sim/verify_final.py build/instruction.mem build/data.mem
+python sim/sim_isa.py build/instruction_mac4.mem build/data_mac4.mem
 ```
+
+Both arguments are optional — they default to `instruction_mac4.mem` and
+`data_mac4.mem`. The script reads the data image as-is and first checks its word
+count against what the packer expects, which catches a v2/v3 layout mismatch
+before a single instruction executes. Pass `--regen` only when you deliberately
+want the image rebuilt.
+
+For the regression sweep across several weight magnitudes, use the other
+harness — note that its second argument is the **packer**, not a data image:
+
+```bash
+python sim/verify_final.py instruction_mac4.mem pack_data_mem_v3.py
+```
+
+`verify_final.py` generates its own memory images into `_v.mem`, including three
+synthetic networks, so it must never be pointed at a real `.mem` file.
 
 The golden model executes the same program against the same memory image and
 prints the ten output logits. They should match the hardware simulation
