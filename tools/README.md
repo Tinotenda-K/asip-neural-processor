@@ -1,4 +1,4 @@
-# Toolchain — weights to memory image
+# Toolchain - weights to memory image
 
 Everything between the committed float weights and the `$readmemb` file
 `DataMemory.v` loads at elaboration.
@@ -61,8 +61,8 @@ image.
 
 **The exported image is not fixed.** `export_mnist_image.py` picks its test
 digit with an unseeded `random.randint`, so every run exports a different digit.
-That invalidates anything recorded against a specific image — the golden logits,
-the argmax, the true label — and, less obviously, the **requantisation shifts**,
+That invalidates anything recorded against a specific image - the golden logits,
+the argmax, the true label - and, less obviously, the **requantisation shifts**,
 because the packer calibrates them from the activation ranges of the actual
 input. Re-exporting silently changes header word +7 and therefore what the
 assembly does. Re-export only when you intend to, and re-record the logits when
@@ -75,7 +75,7 @@ you do. The recorded reference run gives logits
 with argmax 3 against a true label of 3.
 
 **Input normalisation, and why it is not fixed at source.** The model trains on
-pixels in **[0, 1]**; `export_mnist_image.py` writes the **[-1, 1]** mapping —
+pixels in **[0, 1]**; `export_mnist_image.py` writes the **[-1, 1]** mapping -
 `(p/255)*2 - 1`. That is an affine mismatch, and it is bug 3 in
 [../docs/debugging.md](../docs/debugging.md). `load_image()` in the packer
 detects it (a [0,1] image quantises to 0..127 and can never go strongly
@@ -84,15 +84,15 @@ negative) and remaps, printing
 fault.**
 
 Correcting it in the exporter would be cleaner engineering and would change the
-numbers. The repair path rounds twice — once to int8 on the [-1,1] scale, once
-again after the remap — and a direct [0,1] quantisation differs from the
+numbers. The repair path rounds twice - once to int8 on the [-1,1] scale, once
+again after the remap - and a direct [0,1] quantisation differs from the
 repaired result on roughly 5% of pixels (41 of 784 on a representative image),
 always by exactly one LSB. That is enough to move the layer-1 accumulator and
 therefore every bit-exact logit in `results/`. Fix it only as a deliberate act,
 re-running the golden model and re-recording the logits in the same commit.
 
 **The input scale is 127.0 by accident.** `max|array|` is driven by the
-background, which maps to −1.0 in every MNIST image, not by the digit — so the
+background, which maps to −1.0 in every MNIST image, not by the digit - so the
 scale is exactly 127.0 regardless of which image is exported, and the packer's
 `x_scale` argument of 127.0 agrees with it for that same accidental reason. If
 the normalisation ever changes, this stops being true and both sides need
@@ -113,19 +113,19 @@ shift from header word +7 and apply it with a countdown loop of single-bit
 networks with deliberately different weight magnitudes.
 
 The cost is four instructions per bit per neuron. An `SRLV`-style register-shift
-instruction is the best remaining speedup-per-gate in this design — see the root
+instruction is the best remaining speedup-per-gate in this design - see the root
 [README](../README.md).
 
 ## Provenance of `dnn_parameters_final.txt`
 
-Recorded for completeness. This is history, not a build step — the file is
+Recorded for completeness. This is history, not a build step - the file is
 committed, and the pipeline above runs from it.
 
 The model was trained in `real_level_2.ipynb`, whose export cell writes
 `level_2_weights.txt` in the same format. Two things were then fixed by hand:
 the file was **renamed**, and the **input size was prepended to line 2**. The
 notebook writes only the layer units (`128 64 10`), while `parse_dnn_parameters`
-requires `num_layers + 1` sizes with the input first (`784 128 64 10`) — the
+requires `num_layers + 1` sizes with the input first (`784 128 64 10`) - the
 error it reports otherwise is *"Line 2 must list 4 sizes (input size first)"*.
 
 Two caveats if you ever regenerate rather than use the committed file:
