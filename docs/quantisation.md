@@ -21,7 +21,7 @@ multiply-accumulate maps onto DSP48E1 slices and LUT logic directly.
 | **Total** | **109,184** plus biases |
 
 At float32 that is 109,184 × 32 bits ≈ **3,412 Kb** of weights alone, and the
-full unpacked image — weights, biases, input, activations, header — comes to
+full unpacked image - weights, biases, input, activations, header - comes to
 110,390 words ≈ **3,450 Kb**. The XC7S50 has **2,700 Kb** of Block RAM in total.
 Float was never an option; INT8 is what makes the network fit at all.
 
@@ -49,7 +49,7 @@ project.
 
 ---
 
-## Requantisation — the part that is easy to get wrong
+## Requantisation - the part that is easy to get wrong
 
 A layer computes, in integer arithmetic:
 
@@ -58,7 +58,7 @@ acc = Σ (W_q * A_q) + B_q
 ```
 
 `W_q` carries scale `S_w`. `A_q` carries scale `S_a`. Their **product** carries
-scale `S_w · S_a` — this is the accumulator scale. To feed `acc` into the next
+scale `S_w · S_a` - this is the accumulator scale. To feed `acc` into the next
 layer as an INT8 activation at scale `S_a`, it must be brought back down:
 
 ```
@@ -67,13 +67,13 @@ A_next = acc >> S      where   S = log2(S_w) + log2(S_a) - log2(S_a_next)
 
 **The shift depends on both scales, not just the weight scale.** Deriving `S`
 from the weight scale alone is arithmetically wrong by exactly `log2(S_a)`. In
-this project that produced `S1 = 7` where the correct value was `S1 = 11` — a
+this project that produced `S1 = 7` where the correct value was `S1 = 11` - a
 factor of 16 error in every layer-1 activation.
 
 What makes this bug expensive is that nothing crashes. The processor executes
 correctly, every instruction retires, the pipeline is clean, and the network
 produces confident, wrong answers. It is only findable by comparing against a
-reference implementation — which is why the golden model in [../sim/](../sim/)
+reference implementation - which is why the golden model in [../sim/](../sim/)
 exists.
 
 ### Biases
@@ -92,7 +92,7 @@ Same failure mode: it runs, and it is wrong.
 
 The model was trained on inputs in **[0, 1]**. The export path must match. An
 early version of the export script normalised to [-1, 1], which shifts every
-input by half a range — again, silent, and again only visible against a
+input by half a range - again, silent, and again only visible against a
 reference.
 
 The general lesson, which cost three separate bugs in this project: **in a
@@ -121,17 +121,17 @@ Four INT8 values are packed per 32-bit word, little-endian by lane:
 | Packed, four per word (`pack_data_mem_v3.py`) | **27,777** |
 
 Result word 27,776; 33 BRAM tiles. If a layout of **28,509** words with result
-word 28,508 appears anywhere, that is the obsolete **v2** packer — see the
+word 28,508 appears anywhere, that is the obsolete **v2** packer - see the
 warning below.
 
-That is what makes the design placeable — and it is also what makes `MAC4`
+That is what makes the design placeable - and it is also what makes `MAC4`
 worth having, because four operands arrive already aligned in one word.
 
 ### Lane alignment
 
 Packing must respect row boundaries. If a weight row's length is not a multiple
 of four, the row must be padded rather than allowed to spill into the next row's
-first lane — otherwise `MAC4` silently accumulates across a boundary. The packer
+first lane - otherwise `MAC4` silently accumulates across a boundary. The packer
 handles this; the padding is why the packed word count is not exactly
 `ceil(110390 / 4)`.
 
@@ -172,7 +172,7 @@ it without re-running any training. The file's own history, recorded here for
 completeness rather than as a build step:
 
 The model was trained in `real_level_2.ipynb`, whose export cell writes
-`level_2_weights.txt` — the same format, with two differences that were fixed by
+`level_2_weights.txt` - the same format, with two differences that were fixed by
 hand:
 
 1. **The file was renamed** to `dnn_parameters_final.txt`.
@@ -184,7 +184,7 @@ hand:
 
 Two caveats if you regenerate rather than use the committed file. The notebook
 as committed builds **784 → 10 → 10 → 10**, not the network this processor runs
-— the final model came from a run with the `Dense` units changed to 128 / 64 /
+- the final model came from a run with the `Dense` units changed to 128 / 64 /
 10 that was not saved back. And a 10-unit hidden layer would be rejected by the
 packer anyway, because the assembly packs activations four to a word and flushes
 on every fourth neuron, so hidden layers must be a multiple of four.
@@ -202,14 +202,14 @@ Do not trust it. Check it:
 python sim/sim_isa.py build/instruction_mac4.mem build/data_mac4.mem
 ```
 
-Both arguments are optional — they default to `instruction_mac4.mem` and
+Both arguments are optional - they default to `instruction_mac4.mem` and
 `data_mac4.mem`. The script reads the data image as-is and first checks its word
 count against what the packer expects, which catches a v2/v3 layout mismatch
 before a single instruction executes. Pass `--regen` only when you deliberately
 want the image rebuilt.
 
 For the regression sweep across several weight magnitudes, use the other
-harness — note that its second argument is the **packer**, not a data image:
+harness - note that its second argument is the **packer**, not a data image:
 
 ```bash
 python sim/verify_final.py instruction_mac4.mem pack_data_mem_v3.py
@@ -220,6 +220,6 @@ synthetic networks, so it must never be pointed at a real `.mem` file.
 
 The golden model executes the same program against the same memory image and
 prints the ten output logits. They should match the hardware simulation
-bit-exactly — not approximately. Any divergence at all means a scale, a shift,
+bit-exactly - not approximately. Any divergence at all means a scale, a shift,
 or a lane alignment is wrong, and approximate agreement is the most dangerous
 result of the three because it looks like rounding.
