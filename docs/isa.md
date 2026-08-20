@@ -5,7 +5,7 @@ instructions aimed at INT8 fully-connected inference.
 
 All opcode and funct values below are taken from `asm/assembler.py` (the
 `opcodes` and `functs` dictionaries), `ALU.v` and `ControlUnit.v`. If you change
-any of them, change all three — one of the bugs in this project was an
+any of them, change all three - one of the bugs in this project was an
 instruction registered in the wrong dictionary, and a documentation table that
 disagrees with the assembler is worse than no table.
 
@@ -13,7 +13,7 @@ disagrees with the assembler is worse than no table.
 
 ## Encoding formats
 
-### R-type — register arithmetic
+### R-type - register arithmetic
 
 ```
  31      26 25   21 20   16 15   11 10    6 5      0
@@ -25,7 +25,7 @@ disagrees with the assembler is worse than no table.
 
 Opcode is `000000`; the operation is selected by `funct`.
 
-### I-type — immediate, load/store, branch
+### I-type - immediate, load/store, branch
 
 ```
  31      26 25   21 20   16 15                     0
@@ -36,7 +36,7 @@ Opcode is `000000`; the operation is selected by `funct`.
 
 The immediate is sign-extended.
 
-### J-type — jump
+### J-type - jump
 
 ```
  31      26 25                                     0
@@ -52,7 +52,7 @@ The immediate is sign-extended.
 | Register | Use |
 |---|---|
 | `R0` | Hardwired zero. Writes are discarded, so it doubles as a scratch destination when a result is not wanted. |
-| `R1`–`R31` | General purpose. No hardware-enforced calling convention — there are no subroutine calls in these programs. |
+| `R1`–`R31` | General purpose. No hardware-enforced calling convention - there are no subroutine calls in these programs. |
 
 The inference programs use a fixed allocation by convention, documented in the
 header of `asm/dnn_mac4.asm`. Summarised:
@@ -86,11 +86,11 @@ header of `asm/dnn_mac4.asm`. Summarised:
 | `SLL` | `000101` | `rd ← rt << shamt` |
 | `SRL` | `000110` | `rd ← rt >> shamt`, logical |
 | `NOT` | `001001` | `rd ← ~rs` |
-| `MULT` | `001010` | `rd ← rs × rt` (low 32 bits) — behind `ENABLE_MULT` |
+| `MULT` | `001010` | `rd ← rs × rt` (low 32 bits) - behind `ENABLE_MULT` |
 | `SRA` | `001011` | `rd ← rt >>> shamt`, arithmetic |
 
 There is no `SLT`. Comparisons are done with `SUB` followed by
-`SRL rd, rd, 31` to extract the sign bit — see the argmax and clip sequences in
+`SRL rd, rd, 31` to extract the sign bit - see the argmax and clip sequences in
 `dnn_mac4.asm`.
 
 ### Memory and control flow
@@ -103,7 +103,7 @@ There is no `SLT`. Comparisons are done with `SUB` followed by
 | `BEQ` | I | `000111` | if `rs == rt`, `PC ← PC + 4 + (imm << 2)` |
 | `BNE` | I | `001000` | if `rs != rt`, `PC ← PC + 4 + (imm << 2)` |
 | `J` | J | `000010` | `PC ← {PC[31:28], target, 2'b00}` |
-| `NOP` | — | `111111` | no operation |
+| `NOP` | - | `111111` | no operation |
 
 Note that `BEQ`'s opcode (`000111`) and `MAC`'s funct (`000111`) share a bit
 pattern. They occupy different fields and never conflict, but it is worth
@@ -119,14 +119,14 @@ These three are the reason this is an ASIP rather than a small MIPS clone.
 | `MAC4` | `001100` | `rd ← rd + Σᵢ₌₀³ sext(rs[8i+7:8i]) × sext(rt[8i+7:8i])` | `ENABLE_MAC4` |
 | `RELU` | `001000` | `rd ← (rs[31] == 1) ? 0 : rs` | always present |
 
-#### `MAC` — fused multiply-accumulate
+#### `MAC` - fused multiply-accumulate
 
 `rd` is both a source and the destination, which is what makes this a single
 instruction rather than two, and why the register file needs a third read port.
 It reads the **low byte** of each operand, sign-extended.
 
 Reading only the low byte is deliberate. A packed weight word holds four INT8
-values, and `SRL` by 8 slides the next lane down into position — so no masking
+values, and `SRL` by 8 slides the next lane down into position - so no masking
 and no unpacking into separate registers is needed. In the baseline program the
 activations are *not* packed (one INT8 per 32-bit word), so the loop loads each
 activation separately:
@@ -150,7 +150,7 @@ ADDI R17, R17, 1
 BNE  R17, R18, LOOP
 ```
 
-16 instructions per four MACs — 4.00 per MAC. Composed of 5×`LW` (one weight
+16 instructions per four MACs - 4.00 per MAC. Composed of 5×`LW` (one weight
 word plus four separate activations), 4×`MAC`, 3×`SRL`, 3×`ADDI` and 1×`BNE`.
 The activations are loaded one at a time because in this build they are **not**
 packed; only the weights are.
@@ -158,7 +158,7 @@ packed; only the weights are.
 A general-purpose core without `MAC` would need `MULT` into a temporary plus
 `ADD` for each product, taking this to roughly 5 per MAC.
 
-#### `MAC4` — four-way SIMD multiply-accumulate
+#### `MAC4` - four-way SIMD multiply-accumulate
 
 Takes all four lanes of both operands at once, forms four signed 8×8 products,
 sums them through a balanced adder tree, and accumulates into `rd`.
@@ -178,7 +178,7 @@ ADDI R17, R17, 1
 BNE  R17, R18, LOOP
 ```
 
-7 instructions per four MACs — 1.75 per MAC: 2×`LW`, 1×`MAC4`, 3×`ADDI`,
+7 instructions per four MACs - 1.75 per MAC: 2×`LW`, 1×`MAC4`, 3×`ADDI`,
 1×`BNE`. The arithmetic-and-memory core alone goes 12 → 3 (4.00×); the whole
 loop body goes 16 → 7 (2.29×); the whole program goes **2.20×**
 (447,785 → 203,615 instructions), the remaining gap being bias, requantisation,
@@ -187,15 +187,15 @@ loop body goes 16 → 7 (2.29×); the whole program goes **2.20×**
 The saving is in memory traffic and loop bookkeeping, not arithmetic: `MAC` and
 `MAC4` are each a single instruction, and both take three cycles.
 
-**Lane order is little-endian** — lane 0 is bits `[7:0]`. It must match
+**Lane order is little-endian** - lane 0 is bits `[7:0]`. It must match
 `tools/pack_data_mem_v3.py` exactly. A lane-order mismatch computes a
 valid-looking dot product over the wrong pairs and raises no error of any kind.
 
 **Cost.** The adder tree *defines* the routed critical path in the MAC4 build:
 `IMEM BRAM out → register-file read mux → ALU → register-file write port`,
 19.446 ns over 23 logic levels, eleven of them CARRY4. The baseline build's
-worst path ends at the data-memory address port instead — 17.804 ns, 19 levels,
-five CARRY4 — so enabling `MAC4` costs 1.24 ns of slack at 50 MHz. That is why
+worst path ends at the data-memory address port instead - 17.804 ns, 19 levels,
+five CARRY4 - so enabling `MAC4` costs 1.24 ns of slack at 50 MHz. That is why
 it sits behind `ENABLE_MAC4`: an enabled arm lengthens the ALU on every
 instruction, executed or not. Numbers in
 [../results/benchmark.md](../results/benchmark.md).
@@ -204,7 +204,7 @@ instruction, executed or not. Numbers in
 
 `max(0, rs)`, which for a two's-complement value is a sign-bit test. Every
 hidden activation needs it, so folding it into one instruction removes a compare
-*and* a branch from the inner loop — and a branch costs three cycles here like
+*and* a branch from the inner loop - and a branch costs three cycles here like
 everything else.
 
 #### A note on `SRA`
@@ -216,7 +216,7 @@ non-negative.
 
 If you ever remove that `RELU`, or requantise a signed value, you must switch to
 `SRA`. A logical shift turns small negative accumulators into large positives,
-and the network still runs and still classifies — just wrongly. See
+and the network still runs and still classifies - just wrongly. See
 [quantisation.md](quantisation.md).
 
 ---
@@ -235,7 +235,7 @@ and branch immediates are instruction counts that the hardware shifts left by 2
 The two conventions differ, which is exactly as confusing as it sounds and
 produced one of the longer debugging sessions in this project. Confusing them
 gives offsets wrong by a factor of four, which in a dense weight array still
-lands on a plausible-looking weight — the loads succeed and the arithmetic is
+lands on a plausible-looking weight - the loads succeed and the arithmetic is
 silently wrong. See [debugging.md](debugging.md).
 
 ---
@@ -264,7 +264,7 @@ Two positional arguments, input and output. There is no `-o` flag.
 
 **A dead branch still to remove.** `assembler.py` also accepts a four-argument
 form (`asm out data.mem params.txt`). Its `generate_data_mem` routines are
-commented out, so it now writes no data image — but the branch still runs a
+commented out, so it now writes no data image - but the branch still runs a
 quantisation pass with the requantisation shift **hardcoded to `S = 7`**, which
 is precisely the wrong value from bug 2 in [debugging.md](debugging.md); the
 correct layer-1 shift is 11. It is a fossil of a fixed bug sitting in live code,
@@ -276,7 +276,7 @@ a `.mem` data image.
 
 Register it in the **correct dictionary**: R-type operations take opcode
 `000000` in `opcodes` and their real code in `functs`. Putting the funct code in
-the opcode dictionary — which happened here with `SRA` and `MAC4` — makes the
+the opcode dictionary - which happened here with `SRA` and `MAC4` - makes the
 assembler emit opcodes `001011` and `001100`. Neither is a defined opcode in
 this ISA (the highest in use is `BNE` at `001000`), so both fall through
 `ControlUnit.v`'s default branch and execute as no-ops: no error, no trap, just
