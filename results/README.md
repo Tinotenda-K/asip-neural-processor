@@ -22,7 +22,7 @@ in `benchmark.md` verifiable rather than asserted.
 
 **Check `LUT as Memory` reads zero** in either utilisation report. Non-zero means
 a memory reverted to distributed LUTRAM, which on this design means it will not
-place — see [../docs/debugging.md](../docs/debugging.md).
+place - see [../docs/debugging.md](../docs/debugging.md).
 
 ## Reading the timing number
 
@@ -32,7 +32,7 @@ summary line.
 
 **The MAC4 build carries 500 ps of self-imposed pessimism.** The path detail
 shows total clock uncertainty of 0.535 ns, decomposed as 0.035 ns of jitter plus
-a **User Uncertainty of 0.500 ns** — an explicit
+a **User Uncertainty of 0.500 ns** - an explicit
 `set_clock_uncertainty 0.500 [get_clocks core_clk]` in the XDC. That 500 ps is
 subtracted from the requirement before slack is computed, so the design is
 passing a constraint half a nanosecond tighter than the hardware imposes. Strip
@@ -64,6 +64,6 @@ The two builds fail in different places, which is the more interesting result
 and is set out in full in `benchmark.md`. In short: the baseline's worst path
 ends at the data-memory address port (17.804 ns, 19 logic levels, 5 CARRY4 of
 address adder); the MAC4 build's worst path ends at the register-file write port
-— the accumulator writeback — at 19.446 ns over 23 logic levels with 11 CARRY4.
+- the accumulator writeback - at 19.446 ns over 23 logic levels with 11 CARRY4.
 All ten of its worst setup paths end there. The `MAC4` adder tree defines the
 critical path in the build that uses it.
