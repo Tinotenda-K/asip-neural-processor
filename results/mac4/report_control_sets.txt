@@ -1,0 +1,116 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2025.1 (win64) Build 6140274 Thu May 22 00:12:29 MDT 2025
+| Date         : Wed Aug 19 17:05:22 2026
+| Host         : Tinotenda running 64-bit major release  (build 9200)
+| Command      : report_control_sets -verbose -file TopModule_control_sets_placed.rpt
+| Design       : TopModule
+| Device       : xc7s50
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Control Set Information
+
+Table of Contents
+-----------------
+1. Summary
+2. Histogram
+3. Flip-Flop Distribution
+4. Detailed Control Set Information
+
+1. Summary
+----------
+
++----------------------------------------------------------+-------+
+|                          Status                          | Count |
++----------------------------------------------------------+-------+
+| Total control sets                                       |    38 |
+|    Minimum number of control sets                        |    38 |
+|    Addition due to synthesis replication                 |     0 |
+|    Addition due to physical synthesis replication        |     0 |
+| Unused register locations in slices containing registers |    26 |
++----------------------------------------------------------+-------+
+* Control sets can be merged at opt_design using control_set_merge or merge_equivalent_drivers
+** Run report_qor_suggestions for automated merging and remapping suggestions
+
+
+2. Histogram
+------------
+
++--------------------+-------+
+|       Fanout       | Count |
++--------------------+-------+
+| Total control sets |    38 |
+| >= 0 to < 4        |     2 |
+| >= 4 to < 6        |     2 |
+| >= 6 to < 8        |     0 |
+| >= 8 to < 10       |     1 |
+| >= 10 to < 12      |     1 |
+| >= 12 to < 14      |     0 |
+| >= 14 to < 16      |     0 |
+| >= 16              |    32 |
++--------------------+-------+
+* Control sets can be remapped at either synth_design or opt_design
+
+
+3. Flip-Flop Distribution
+-------------------------
+
++--------------+-----------------------+------------------------+-----------------+--------------+
+| Clock Enable | Synchronous Set/Reset | Asynchronous Set/Reset | Total Registers | Total Slices |
++--------------+-----------------------+------------------------+-----------------+--------------+
+| No           | No                    | No                     |               5 |            3 |
+| No           | No                    | Yes                    |               2 |            1 |
+| No           | Yes                   | No                     |              40 |           27 |
+| Yes          | No                    | No                     |               0 |            0 |
+| Yes          | No                    | Yes                    |               0 |            0 |
+| Yes          | Yes                   | No                     |            1007 |          470 |
++--------------+-----------------------+------------------------+-----------------+--------------+
+
+
+4. Detailed Control Set Information
+-----------------------------------
+
++----------------+-------------------------------------+----------------------------------+------------------+----------------+--------------+
+|  Clock Signal  |            Enable Signal            |         Set/Reset Signal         | Slice Load Count | Bel Load Count | Bels / Slice |
++----------------+-------------------------------------+----------------------------------+------------------+----------------+--------------+
+|  clk_IBUF_BUFG |                                     |                                  |                1 |              1 |         1.00 |
+|  core_clk      |                                     | rst_IBUF                         |                1 |              2 |         2.00 |
+|  core_clk      |                                     |                                  |                2 |              4 |         2.00 |
+|  core_clk      | result_out0                         | rst_sync                         |                2 |              5 |         2.50 |
+|  core_clk      |                                     | rst_sync                         |                6 |              8 |         1.33 |
+|  core_clk      | ctrl/Q[1]                           | rst_sync                         |                3 |             10 |         3.33 |
+|  core_clk      | datapath/IMEM/E[0]                  | rst_sync                         |               15 |             32 |         2.13 |
+|  core_clk      | datapath/IMEM/instruction_reg_34[0] | rst_sync                         |               18 |             32 |         1.78 |
+|  core_clk      | datapath/IMEM/instruction_reg_10[0] | rst_sync                         |               17 |             32 |         1.88 |
+|  core_clk      | datapath/IMEM/instruction_reg_11[0] | rst_sync                         |               18 |             32 |         1.78 |
+|  core_clk      | datapath/IMEM/instruction_reg_12[0] | rst_sync                         |               17 |             32 |         1.88 |
+|  core_clk      | datapath/IMEM/instruction_reg_18[0] | rst_sync                         |               17 |             32 |         1.88 |
+|  core_clk      | datapath/IMEM/instruction_reg_15[0] | rst_sync                         |               14 |             32 |         2.29 |
+|  core_clk      | datapath/IMEM/instruction_reg_24[0] | rst_sync                         |               21 |             32 |         1.52 |
+|  core_clk      | datapath/IMEM/instruction_reg_20[0] | rst_sync                         |               13 |             32 |         2.46 |
+|  core_clk      | datapath/IMEM/instruction_reg_25[0] | rst_sync                         |               13 |             32 |         2.46 |
+|  core_clk      | datapath/IMEM/instruction_reg_30[0] | rst_sync                         |               17 |             32 |         1.88 |
+|  core_clk      | datapath/IMEM/instruction_reg_22[0] | rst_sync                         |               12 |             32 |         2.67 |
+|  core_clk      | datapath/IMEM/instruction_reg_31[0] | rst_sync                         |               16 |             32 |         2.00 |
+|  core_clk      | datapath/IMEM/instruction_reg_37[0] | rst_sync                         |               15 |             32 |         2.13 |
+|  core_clk      | datapath/IMEM/instruction_reg_29[0] | rst_sync                         |               14 |             32 |         2.29 |
+|  core_clk      | datapath/IMEM/instruction_reg_27[0] | rst_sync                         |               11 |             32 |         2.91 |
+|  core_clk      | datapath/IMEM/instruction_reg_28[0] | rst_sync                         |               13 |             32 |         2.46 |
+|  core_clk      | datapath/IMEM/instruction_reg_26[0] | rst_sync                         |               13 |             32 |         2.46 |
+|  core_clk      | datapath/IMEM/instruction_reg_17[0] | rst_sync                         |               13 |             32 |         2.46 |
+|  core_clk      | datapath/IMEM/instruction_reg_32[0] | rst_sync                         |               21 |             32 |         1.52 |
+|  core_clk      | datapath/IMEM/instruction_reg_14[0] | rst_sync                         |               12 |             32 |         2.67 |
+|  core_clk      | datapath/IMEM/instruction_reg_35[0] | rst_sync                         |               15 |             32 |         2.13 |
+|  core_clk      | datapath/IMEM/instruction_reg_21[0] | rst_sync                         |               10 |             32 |         3.20 |
+|  core_clk      | datapath/IMEM/instruction_reg_16[0] | rst_sync                         |               15 |             32 |         2.13 |
+|  core_clk      | datapath/IMEM/instruction_reg_23[0] | rst_sync                         |               14 |             32 |         2.29 |
+|  core_clk      | datapath/IMEM/instruction_reg_38[0] | rst_sync                         |               15 |             32 |         2.13 |
+|  core_clk      | datapath/IMEM/instruction_reg_36[0] | rst_sync                         |               17 |             32 |         1.88 |
+|  core_clk      | datapath/IMEM/instruction_reg_13[0] | rst_sync                         |               13 |             32 |         2.46 |
+|  core_clk      | datapath/IMEM/instruction_reg_19[0] | rst_sync                         |               10 |             32 |         3.20 |
+|  core_clk      | datapath/IMEM/instruction_reg_9[0]  | rst_sync                         |               15 |             32 |         2.13 |
+|  core_clk      |                                     | datapath/IMEM/instruction_reg_47 |               21 |             32 |         1.52 |
+|  core_clk      | datapath/IMEM/instruction_reg_33[0] | rst_sync                         |               21 |             32 |         1.52 |
++----------------+-------------------------------------+----------------------------------+------------------+----------------+--------------+
+
+
